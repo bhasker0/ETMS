@@ -1,0 +1,6 @@
+export enum ChallanStatus {
+  RECEIVED = 'RECEIVED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  DISPATCHED = 'DISPATCHED',
+}

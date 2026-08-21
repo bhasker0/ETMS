@@ -1,0 +1,13 @@
+{
+  "name": "surat-embroidery-pdf-service",
+  "version": "1.0.0",
+  "description": "Puppeteer Microservice for Surat Embroidery ERP Invoices, Delivery Challans, and Karigar Hisab Sheets",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer": "^22.12.1"
+  }
+}
