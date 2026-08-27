@@ -16,6 +16,7 @@ import { OutwardInvoicesModule } from './modules/outward-invoices/outward-invoic
 import { WageHisabModule } from './modules/wage-hisab/wage-hisab.module';
 import { TallyModule } from './modules/tally/tally.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { OpsSyncModule } from './modules/ops-sync/ops-sync.module';
 
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
@@ -41,6 +42,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     WageHisabModule,
     TallyModule,
     AuditModule,
+    OpsSyncModule,
   ],
   providers: [
     {

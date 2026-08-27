@@ -55,6 +55,10 @@ export class User extends Model<User> {
   @Column(DataType.STRING(20))
   status: string;
 
+  @Default(false)
+  @Column(DataType.BOOLEAN)
+  is_internal_ops: boolean;
+
   @HasMany(() => UserCompanyRole, 'user_id')
   userCompanyRoles: UserCompanyRole[];
 

@@ -55,6 +55,10 @@ export class Company extends Model<Company> {
   })
   phone: string;
 
+  @Default('ACTIVE')
+  @Column(DataType.STRING(20))
+  status: string;
+
   @Default(12)
   @Column(DataType.INTEGER)
   default_shift_hours: number;

@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: docker.io/library/postgres:16-alpine
     container_name: etms-postgres
     restart: unless-stopped
     environment:
@@ -22,7 +22,7 @@ services:
       - etms-network
 
   redis:
-    image: redis:7-alpine
+    image: docker.io/library/redis:7-alpine
     container_name: etms-redis
     restart: unless-stopped
     command: redis-server --appendonly yes
@@ -47,7 +47,7 @@ services:
     ports:
       - "${PDF_SERVICE_PORT:-3001}:3001"
     environment:
-      PORT: 3001
+      PORT: "3001"
       NODE_ENV: production
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
@@ -68,14 +68,14 @@ services:
       - "${PORT:-4000}:4000"
     environment:
       NODE_ENV: development
-      PORT: 4000
+      PORT: "4000"
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: "5432"
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_DATABASE: ${DB_DATABASE:-surat_embroidery_erp}
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: "6379"
       JWT_SECRET: ${JWT_SECRET:-surat_embroidery_super_secret_jwt_key_2026}
       JWT_EXPIRATION: 86400s
       PDF_SERVICE_URL: http://pdf-service:3001
