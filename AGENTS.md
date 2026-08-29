@@ -29,9 +29,21 @@ Usage notes:
 <available_skills>
 
 <skill>
-<name>jira-main</name>
+<name>jira</name>
 <description>Manages JIRA issues, projects, and workflows using Atlassian MCP. Use when asked to "create JIRA ticket", "search JIRA", "update JIRA issue", "transition issue", "sprint planning", or "epic management".</description>
-<location>.skilz/skills/jira-main/SKILL.md</location>
+<location>.agent/skills/jira/SKILL.md</location>
+</skill>
+
+<skill>
+<name>karpathy-guidelines</name>
+<description>Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and define verifiable success criteria.</description>
+<location>.agent/skills/karpathy-guidelines/SKILL.md</location>
+</skill>
+
+<skill>
+<name>etms-surat-embroidery-erp</name>
+<description>Expert domain guidelines for Surat Embroidery Micro-ERP backend (SAC 9988 GST billing, Karigar fortnightly wage hisab, Munim handshake, and Tally Prime XML export).</description>
+<location>.agent/skills/etms-surat-embroidery-erp/SKILL.md</location>
 </skill>
 
 </available_skills>

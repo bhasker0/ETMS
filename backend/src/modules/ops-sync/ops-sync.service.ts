@@ -5,6 +5,7 @@ import { User } from '../../database/models/user.model';
 import { UserCompanyRole } from '../../database/models/user-company-role.model';
 import { Role } from '../../common/enums/role.enum';
 import { Permission } from '../../common/enums/permission.enum';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class OpsSyncService {
@@ -62,8 +63,13 @@ export class OpsSyncService {
 
   // SCRUM-54: Sync User & Roles
   async syncUser(payload: any) {
-    const { id, full_name, mobile, email, company_id, role, is_internal_ops } = payload;
+    const { id, full_name, mobile, email, company_id, role, is_internal_ops, password_hash, password } = payload;
     this.logger.log(`Syncing user ${full_name} (${mobile}) from OPS`);
+
+    let finalPasswordHash = password_hash;
+    if (!finalPasswordHash || !finalPasswordHash.startsWith('$2')) {
+      finalPasswordHash = await bcrypt.hash(password || password_hash || 'Password@123', 10);
+    }
 
     const [user, created] = await User.findOrCreate({
       where: { mobile },
@@ -72,7 +78,7 @@ export class OpsSyncService {
         full_name,
         mobile,
         email,
-        password_hash: 'Password@123',
+        password_hash: finalPasswordHash,
         status: 'ACTIVE',
         is_internal_ops: !!is_internal_ops,
       } as any,
@@ -82,6 +88,9 @@ export class OpsSyncService {
       user.full_name = full_name || user.full_name;
       user.email = email || user.email;
       user.is_internal_ops = !!is_internal_ops;
+      if (!user.password_hash || !user.password_hash.startsWith('$2') || user.password_hash === 'Password@123') {
+        user.password_hash = finalPasswordHash;
+      }
       await user.save();
     }
 
