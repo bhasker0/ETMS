@@ -11,6 +11,7 @@ import { InwardChallan } from './models/inward-challan.model';
 import { DailyShiftLog } from './models/daily-shift-log.model';
 import { OutwardInvoice } from './models/outward-invoice.model';
 import { AuditLog } from './models/audit-log.model';
+import { Party } from './models/party.model';
 
 export const databaseProviders = [
   {
@@ -44,6 +45,7 @@ export const databaseProviders = [
         DailyShiftLog,
         OutwardInvoice,
         AuditLog,
+        Party,
       ]);
 
       await sequelize.authenticate();

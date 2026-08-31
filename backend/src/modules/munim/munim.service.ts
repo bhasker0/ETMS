@@ -161,7 +161,21 @@ export class MunimService {
     }
 
     // Authorization checks
-    if (request.initiator_type === MunimInitiatorType.MUNIM_TO_COMPANY) {
+    if (dto.status === MunimRequestStatus.REVOKED) {
+      const isRequester = request.requested_by_user_id === user.id;
+      const isTargetMunim = request.munim_user_id === user.id;
+      const isCompanyAdmin = await UserCompanyRole.findOne({
+        where: {
+          user_id: user.id,
+          company_id: request.company_id,
+          role: Role.COMPANY_ADMIN,
+          is_active: true,
+        },
+      });
+      if (!isRequester && !isTargetMunim && !isCompanyAdmin && !user.roles?.includes(Role.SUPER_ADMIN)) {
+        throw new ForbiddenException('You are not authorized to revoke this request');
+      }
+    } else if (request.initiator_type === MunimInitiatorType.MUNIM_TO_COMPANY) {
       // Company Owner must respond
       const isCompanyAdmin = await UserCompanyRole.findOne({
         where: {

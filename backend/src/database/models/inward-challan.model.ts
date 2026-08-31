@@ -92,6 +92,36 @@ export class InwardChallan extends Model<InwardChallan> {
   })
   design_no: string;
 
+  @Default(0)
+  @Column(DataType.INTEGER)
+  stitch_count: number;
+
+  @Default(0)
+  @Column(DataType.DECIMAL(10, 2))
+  karigar_commission_rate: number;
+
+  @Default('PER_1K_STITCHES')
+  @Column(DataType.STRING(20))
+  karigar_commission_type: string;
+
+  @Default(0)
+  @Column(DataType.DECIMAL(10, 2))
+  jobwork_price_per_1k: number;
+
+  @Column({
+    type: DataType.JSON,
+    allowNull: true,
+  })
+  items: Array<{
+    design_no: string;
+    stitch_count: number;
+    commission_type: string;
+    commission_rate: number;
+    jobwork_price_per_1k: number;
+    meters: number;
+    than_count: number;
+  }>;
+
   @Column({
     type: DataType.ENUM(...Object.values(ChallanStatus)),
     allowNull: false,

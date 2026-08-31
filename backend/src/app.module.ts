@@ -17,6 +17,7 @@ import { WageHisabModule } from './modules/wage-hisab/wage-hisab.module';
 import { TallyModule } from './modules/tally/tally.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { OpsSyncModule } from './modules/ops-sync/ops-sync.module';
+import { PartiesModule } from './modules/parties/parties.module';
 
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
@@ -43,6 +44,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     TallyModule,
     AuditModule,
     OpsSyncModule,
+    PartiesModule,
   ],
   providers: [
     {

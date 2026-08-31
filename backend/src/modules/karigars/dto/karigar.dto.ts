@@ -22,10 +22,30 @@ export class CreateKarigarDto {
   @IsNumber()
   default_rate_per_meter?: number;
 
-  @ApiPropertyOptional({ example: 18000, description: 'Default monthly fixed salary if FIXED_MONTHLY' })
+  @ApiPropertyOptional({ example: 18000, description: 'Default monthly fixed salary if FIXED_MONTHLY or FIXED_PLUS_INCENTIVE' })
   @IsOptional()
   @IsNumber()
   default_monthly_salary?: number;
+
+  @ApiPropertyOptional({ example: 100000, description: 'Threshold output before incentive kicks in' })
+  @IsOptional()
+  @IsNumber()
+  incentive_threshold_value?: number;
+
+  @ApiPropertyOptional({ example: 'STITCHES', enum: ['STITCHES', 'PIECES', 'METERS'] })
+  @IsOptional()
+  @IsString()
+  incentive_threshold_type?: string;
+
+  @ApiPropertyOptional({ example: 0.25, description: 'Commission rate above threshold' })
+  @IsOptional()
+  @IsNumber()
+  incentive_rate?: number;
+
+  @ApiPropertyOptional({ example: 'PER_1K_STITCHES', enum: ['PER_1K_STITCHES', 'PER_PIECE', 'PER_METER'] })
+  @IsOptional()
+  @IsString()
+  incentive_rate_type?: string;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()
@@ -59,7 +79,27 @@ export class UpdateKarigarDto {
   @IsNumber()
   default_monthly_salary?: number;
 
-  @ApiPropertyOptional({ default: true })
+  @ApiPropertyOptional({ example: 100000 })
+  @IsOptional()
+  @IsNumber()
+  incentive_threshold_value?: number;
+
+  @ApiPropertyOptional({ example: 'STITCHES' })
+  @IsOptional()
+  @IsString()
+  incentive_threshold_type?: string;
+
+  @ApiPropertyOptional({ example: 0.25 })
+  @IsOptional()
+  @IsNumber()
+  incentive_rate?: number;
+
+  @ApiPropertyOptional({ example: 'PER_1K_STITCHES' })
+  @IsOptional()
+  @IsString()
+  incentive_rate_type?: string;
+
+  @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;

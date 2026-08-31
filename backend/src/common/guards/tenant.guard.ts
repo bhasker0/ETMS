@@ -35,11 +35,16 @@ export class TenantGuard implements CanActivate {
     }
 
     // Determine company ID
+    const rawHeader = request.headers[COMPANY_ID_HEADER] as string;
+    const cleanHeader =
+      rawHeader && rawHeader !== 'undefined' && rawHeader !== 'null' ? rawHeader : undefined;
+
     const companyId =
-      (request.headers[COMPANY_ID_HEADER] as string) ||
+      cleanHeader ||
       request.query.company_id ||
       request.body?.company_id ||
-      user.activeCompanyId;
+      user.activeCompanyId ||
+      user.companyId;
 
     // Endpoints like profile, company-list, munim-requests don't require tenant context
     const isTenantOptional = this.reflector.getAllAndOverride<boolean>('tenantOptional', [

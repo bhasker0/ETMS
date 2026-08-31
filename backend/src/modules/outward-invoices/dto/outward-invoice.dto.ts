@@ -42,10 +42,32 @@ export class CalculateInvoicePreviewDto {
 }
 
 export class CreateOutwardInvoiceDto {
-  @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Inward Challan UUID' })
+  @ApiPropertyOptional({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Primary Inward Challan UUID' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  inward_challan_id: string;
+  inward_challan_id?: string;
+
+  @ApiPropertyOptional({ example: 'Vandana Silk Mills Pvt Ltd' })
+  @IsOptional()
+  @IsString()
+  trader_name?: string;
+
+  @ApiPropertyOptional({ example: '24AABCV1234F1Z8' })
+  @IsOptional()
+  @IsString()
+  trader_gstin?: string;
+
+  @ApiPropertyOptional({ description: 'Consolidated multiple lots' })
+  @IsOptional()
+  lot_items?: Array<{
+    inward_challan_id: string;
+    lot_no: string;
+    meters: number;
+    thans?: number;
+    fabric_quality?: string;
+    design_no?: string;
+    rate?: number;
+  }>;
 
   @ApiPropertyOptional({ example: 'INV-2026-0042', description: 'Auto-generated if empty' })
   @IsOptional()

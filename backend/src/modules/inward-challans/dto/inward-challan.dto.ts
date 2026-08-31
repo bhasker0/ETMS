@@ -55,6 +55,38 @@ export class CreateInwardChallanDto {
   @IsNotEmpty()
   design_no: string;
 
+  @ApiPropertyOptional({ example: 24000, description: 'Stitches per design repeat/saree' })
+  @IsOptional()
+  @IsNumber()
+  stitch_count?: number;
+
+  @ApiPropertyOptional({ example: 0.25, description: 'Karigar incentive commission rate' })
+  @IsOptional()
+  @IsNumber()
+  karigar_commission_rate?: number;
+
+  @ApiPropertyOptional({ example: 'PER_1K_STITCHES' })
+  @IsOptional()
+  @IsString()
+  karigar_commission_type?: string;
+
+  @ApiPropertyOptional({ example: 0.60, description: 'Jobwork bill price per 1k stitches' })
+  @IsOptional()
+  @IsNumber()
+  jobwork_price_per_1k?: number;
+
+  @ApiPropertyOptional({ description: 'Multi-design lot items' })
+  @IsOptional()
+  items?: Array<{
+    design_no: string;
+    stitch_count: number;
+    commission_type: string;
+    commission_rate: number;
+    jobwork_price_per_1k: number;
+    meters: number;
+    than_count: number;
+  }>;
+
   @ApiPropertyOptional({ enum: ChallanStatus, default: ChallanStatus.RECEIVED })
   @IsOptional()
   @IsEnum(ChallanStatus)

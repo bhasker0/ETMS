@@ -40,9 +40,23 @@ export class OutwardInvoice extends Model<OutwardInvoice> {
   @Index('idx_invoice_challan')
   @Column({
     type: DataType.UUID,
-    allowNull: false,
+    allowNull: true,
   })
   inward_challan_id: string;
+
+  @Column({
+    type: DataType.JSON,
+    allowNull: true,
+  })
+  lot_items: Array<{
+    inward_challan_id: string;
+    lot_no: string;
+    meters: number;
+    thans?: number;
+    fabric_quality?: string;
+    design_no?: string;
+    rate?: number;
+  }>;
 
   @Column({
     type: DataType.STRING(50),

@@ -65,6 +65,22 @@ export class Karigar extends Model<Karigar> {
   @Column(DataType.DECIMAL(10, 2))
   default_monthly_salary: number;
 
+  @Default(0)
+  @Column(DataType.DECIMAL(12, 2))
+  incentive_threshold_value: number;
+
+  @Default('STITCHES')
+  @Column(DataType.STRING(20))
+  incentive_threshold_type: string;
+
+  @Default(0)
+  @Column(DataType.DECIMAL(10, 2))
+  incentive_rate: number;
+
+  @Default('PER_1K_STITCHES')
+  @Column(DataType.STRING(20))
+  incentive_rate_type: string;
+
   @Default(true)
   @Column(DataType.BOOLEAN)
   is_active: boolean;
