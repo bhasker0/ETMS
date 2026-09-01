@@ -15,9 +15,12 @@ export class InwardChallansService {
       challanNo = `CH-${currentYear}-${String(count + 1).padStart(4, '0')}`;
     }
 
+    const challanDate = dto.challan_date || new Date().toISOString().split('T')[0];
+
     return InwardChallan.create({
       ...dto,
       challan_no: challanNo,
+      challan_date: challanDate,
       company_id: companyId,
     } as any);
   }

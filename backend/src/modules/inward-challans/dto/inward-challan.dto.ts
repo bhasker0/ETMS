@@ -16,9 +16,10 @@ export class CreateInwardChallanDto {
   @IsString()
   challan_no?: string;
 
-  @ApiProperty({ example: '2026-08-10' })
+  @ApiPropertyOptional({ example: '2026-08-10', description: 'Defaults to today if empty' })
+  @IsOptional()
   @IsDateString()
-  challan_date: string;
+  challan_date?: string;
 
   @ApiProperty({ example: 'Vandana Silk Mills Pvt Ltd', description: 'Textile Trader / Party Name' })
   @IsString()

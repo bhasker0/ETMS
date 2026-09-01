@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import { Karigar } from '../../database/models/karigar.model';
 import { DailyShiftLog } from '../../database/models/daily-shift-log.model';
 import { KarigarUchapat } from '../../database/models/karigar-uchapat.model';
+import { InwardChallan } from '../../database/models/inward-challan.model';
 import { Machine } from '../../database/models/machine.model';
 import { Company } from '../../database/models/company.model';
 import { PdfService } from '../pdf/pdf.service';
@@ -29,21 +30,84 @@ export class WageHisabService {
         karigar_id: dto.karigar_id,
         shift_date: { [Op.between]: [dto.startDate, dto.endDate] },
       },
-      include: [{ model: Machine, as: 'machine', attributes: ['machine_no', 'head_count'] }],
+      include: [
+        { model: Machine, as: 'machine', attributes: ['machine_no', 'head_count'] },
+        { model: InwardChallan, as: 'inwardChallan' },
+      ],
       order: [['shift_date', 'ASC']],
     });
 
     const totalMeters = shifts.reduce((acc, s) => acc + Number(s.total_meters || 0), 0);
     const totalStitches = shifts.reduce((acc, s) => acc + Number(s.total_stitches || 0), 0);
 
-    // 2. Compute Gross Earnings based on wage type
+    // 2. Compute individual shift earnings based on design specifications
+    const shiftBreakdowns = shifts.map((s) => {
+      const shiftMeters = Number(s.total_meters || 0);
+      const shiftStitches = Number(s.total_stitches || 0);
+
+      let designStitchCount = Number(s.inwardChallan?.stitch_count || 0);
+      let commRate = s.inwardChallan?.karigar_commission_rate;
+      let commType = s.inwardChallan?.karigar_commission_type || 'PER_1K_STITCHES';
+
+      // If inward challan has multi-design items breakdown, match s.design_no
+      if (s.inwardChallan?.items && Array.isArray(s.inwardChallan.items)) {
+        const itemMatch = s.inwardChallan.items.find(
+          (it: any) => it.design_no && it.design_no.toLowerCase().trim() === (s.design_no || '').toLowerCase().trim()
+        );
+        if (itemMatch) {
+          designStitchCount = Number(itemMatch.stitch_count || designStitchCount);
+          commRate = itemMatch.commission_rate ?? commRate;
+          commType = itemMatch.commission_type || commType;
+        }
+      }
+
+      let shiftEarnings = 0;
+      let appliedBasis = '';
+
+      if (karigar.wage_type === WageType.PIECE_RATE) {
+        if (commRate !== undefined && commRate !== null && Number(commRate) > 0) {
+          const rateNum = Number(commRate);
+          if (commType === 'PER_1K_STITCHES') {
+            shiftEarnings = Number(((shiftStitches / 1000) * rateNum).toFixed(2));
+            appliedBasis = `₹${rateNum}/1k st (${s.design_no || 'Design'})`;
+          } else if (commType === 'PER_PIECE') {
+            const pieces = Math.max(1, Math.floor(shiftMeters / 6));
+            shiftEarnings = Number((pieces * rateNum).toFixed(2));
+            appliedBasis = `₹${rateNum}/saree (${pieces} pcs)`;
+          } else {
+            shiftEarnings = Number((shiftMeters * rateNum).toFixed(2));
+            appliedBasis = `₹${rateNum}/m (${s.design_no || 'Design'})`;
+          }
+        } else {
+          const defaultRate = Number(karigar.default_rate_per_meter || 1.2);
+          shiftEarnings = Number((shiftMeters * defaultRate).toFixed(2));
+          appliedBasis = `₹${defaultRate}/meter`;
+        }
+      }
+
+      return {
+        id: s.id,
+        shift_date: s.shift_date,
+        shift_type: s.shift_type,
+        machine_no: s.machine?.machine_no || 'N/A',
+        design_no: s.design_no || 'N/A',
+        total_meters: shiftMeters,
+        total_stitches: shiftStitches,
+        stitch_count: designStitchCount,
+        commission_rate: commRate !== undefined && commRate !== null ? Number(commRate) : null,
+        commission_type: commType,
+        applied_basis: appliedBasis,
+        shift_earnings: shiftEarnings,
+      };
+    });
+
+    // 3. Compute Gross Earnings based on wage type
     let grossEarnings = 0;
     let baseSalary = 0;
     let incentiveCommission = 0;
 
     if (karigar.wage_type === WageType.PIECE_RATE) {
-      const rate = Number(karigar.default_rate_per_meter || 1.2);
-      grossEarnings = Number((totalMeters * rate).toFixed(2));
+      grossEarnings = Number(shiftBreakdowns.reduce((acc, sb) => acc + sb.shift_earnings, 0).toFixed(2));
     } else if (karigar.wage_type === WageType.FIXED_MONTHLY) {
       // FIXED_MONTHLY: fortnightly is half-month wage
       const monthly = Number(karigar.default_monthly_salary || 18000);
@@ -73,7 +137,7 @@ export class WageHisabService {
       grossEarnings = Number((baseSalary + incentiveCommission).toFixed(2));
     }
 
-    // 3. Fetch all Uchapat (Cash/UPI advances) in this period
+    // 4. Fetch all Uchapat (Cash/UPI advances) in this period
     const uchapats = await KarigarUchapat.findAll({
       where: {
         company_id: companyId,
@@ -86,7 +150,7 @@ export class WageHisabService {
     const totalUchapatAdvances = uchapats.reduce((acc, u) => acc + Number(u.amount || 0), 0);
     const deductions = Number(dto.deductions || 0);
 
-    // 4. Karigar Fortnightly Wage Hisab: Net Pay = (Gross Output) - (Uchapat Advances) - (Deductions)
+    // 5. Karigar Fortnightly Wage Hisab: Net Pay = (Gross Output) - (Uchapat Advances) - (Deductions)
     const netPayable = Number((grossEarnings - totalUchapatAdvances - deductions).toFixed(2));
 
     const startDay = new Date(dto.startDate).getDate();
@@ -100,7 +164,10 @@ export class WageHisabService {
       endDate: dto.endDate,
       total_shifts: shifts.length,
       total_meters: Number(totalMeters.toFixed(2)),
+      total_stitches: totalStitches,
       rate_per_meter: Number(karigar.default_rate_per_meter || 1.2),
+      base_salary: baseSalary,
+      incentive_commission: incentiveCommission,
       gross_earnings: grossEarnings,
       total_uchapat_advances: totalUchapatAdvances,
       deductions,
@@ -135,15 +202,7 @@ export class WageHisabService {
         deduction_reason: dto.deduction_reason || null,
         netPayable,
       },
-      shifts: shifts.map((s) => ({
-        id: s.id,
-        shift_date: s.shift_date,
-        shift_type: s.shift_type,
-        machine_no: s.machine?.machine_no || 'N/A',
-        design_no: s.design_no,
-        total_meters: Number(s.total_meters || 0),
-        total_stitches: Number(s.total_stitches || 0),
-      })),
+      shifts: shiftBreakdowns,
       uchapats: uchapats.map((u) => ({
         id: u.id,
         date: u.date,
