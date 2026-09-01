@@ -5,10 +5,50 @@ import {
   IsDateString,
   IsEnum,
   IsOptional,
+  IsArray,
+  ValidateNested,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ShiftType } from '../../../common/enums/shift-type.enum';
+
+export class ShiftLotAllocationDto {
+  @ApiPropertyOptional({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
+  @IsOptional()
+  @IsString()
+  inward_challan_id?: string;
+
+  @ApiProperty({ example: 'LOT-9988' })
+  @IsString()
+  @IsNotEmpty()
+  lot_no: string;
+
+  @ApiProperty({ example: 'DS-4029' })
+  @IsString()
+  @IsNotEmpty()
+  design_no: string;
+
+  @ApiProperty({ example: 200 })
+  @IsNumber()
+  @Min(0)
+  meters: number;
+
+  @ApiPropertyOptional({ example: 28000 })
+  @IsOptional()
+  @IsNumber()
+  stitch_count?: number;
+
+  @ApiPropertyOptional({ example: 0.30 })
+  @IsOptional()
+  @IsNumber()
+  commission_rate?: number;
+
+  @ApiPropertyOptional({ example: 'PER_1K_STITCHES' })
+  @IsOptional()
+  @IsString()
+  commission_type?: string;
+}
 
 export class CreateShiftLogDto {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', description: 'Machine UUID' })
@@ -69,6 +109,13 @@ export class CreateShiftLogDto {
   @IsOptional()
   @IsString()
   operator_notes?: string;
+
+  @ApiPropertyOptional({ type: [ShiftLotAllocationDto], description: 'Allocations across multiple lots / cloth items' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ShiftLotAllocationDto)
+  lot_allocations?: ShiftLotAllocationDto[];
 }
 
 export class UpdateShiftLogDto {

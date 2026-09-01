@@ -120,6 +120,20 @@ export class DailyShiftLog extends Model<DailyShiftLog> {
   })
   operator_notes: string;
 
+  @Column({
+    type: DataType.JSON,
+    allowNull: true,
+  })
+  lot_allocations: Array<{
+    inward_challan_id: string;
+    lot_no: string;
+    design_no: string;
+    meters: number;
+    stitch_count?: number;
+    commission_rate?: number;
+    commission_type?: string;
+  }>;
+
   @BelongsTo(() => Company, 'company_id')
   company: Company;
 

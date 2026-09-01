@@ -5,10 +5,50 @@ import {
   IsDateString,
   IsEnum,
   IsOptional,
+  IsArray,
+  ValidateNested,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ChallanStatus } from '../../../common/enums/challan-status.enum';
+
+export class InwardChallanDesignItemDto {
+  @ApiProperty({ example: 'DSG-108-A' })
+  @IsString()
+  @IsNotEmpty()
+  design_no: string;
+
+  @ApiPropertyOptional({ example: 24000 })
+  @IsOptional()
+  @IsNumber()
+  stitch_count?: number;
+
+  @ApiPropertyOptional({ example: 'PER_1K_STITCHES' })
+  @IsOptional()
+  @IsString()
+  commission_type?: string;
+
+  @ApiPropertyOptional({ example: 0.25 })
+  @IsOptional()
+  @IsNumber()
+  commission_rate?: number;
+
+  @ApiPropertyOptional({ example: 0.60 })
+  @IsOptional()
+  @IsNumber()
+  jobwork_price_per_1k?: number;
+
+  @ApiPropertyOptional({ example: 500 })
+  @IsOptional()
+  @IsNumber()
+  meters?: number;
+
+  @ApiPropertyOptional({ example: 5 })
+  @IsOptional()
+  @IsNumber()
+  than_count?: number;
+}
 
 export class CreateInwardChallanDto {
   @ApiPropertyOptional({ example: 'CH-2026-001', description: 'Auto-generated if empty' })
@@ -76,17 +116,12 @@ export class CreateInwardChallanDto {
   @IsNumber()
   jobwork_price_per_1k?: number;
 
-  @ApiPropertyOptional({ description: 'Multi-design lot items' })
+  @ApiPropertyOptional({ type: [InwardChallanDesignItemDto], description: 'Multi-design lot items' })
   @IsOptional()
-  items?: Array<{
-    design_no: string;
-    stitch_count: number;
-    commission_type: string;
-    commission_rate: number;
-    jobwork_price_per_1k: number;
-    meters: number;
-    than_count: number;
-  }>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => InwardChallanDesignItemDto)
+  items?: InwardChallanDesignItemDto[];
 
   @ApiPropertyOptional({ enum: ChallanStatus, default: ChallanStatus.RECEIVED })
   @IsOptional()
