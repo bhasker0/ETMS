@@ -63,7 +63,6 @@ export class WageHisabService {
 
       let shiftEarnings = 0;
       let appliedBasis = '';
-      let shiftBaseSalary = 0;
       let shiftIncentive = 0;
 
       if (karigar.wage_type === WageType.PIECE_RATE) {
@@ -86,8 +85,6 @@ export class WageHisabService {
           appliedBasis = `₹${defaultRate}/meter`;
         }
       } else if (karigar.wage_type === WageType.FIXED_PLUS_INCENTIVE) {
-        shiftBaseSalary = Number((Number(karigar.default_monthly_salary || 18000) / 30).toFixed(2));
-
         const thresholdVal = Number(karigar.incentive_threshold_value || 100000);
         const thresholdType = karigar.incentive_threshold_type || 'STITCHES';
 
@@ -133,9 +130,8 @@ export class WageHisabService {
           appliedBasis = `Under ${thresholdVal.toLocaleString()} ${thresholdUnit} threshold`;
         }
       } else if (karigar.wage_type === WageType.FIXED_MONTHLY) {
-        shiftBaseSalary = Number((Number(karigar.default_monthly_salary || 18000) / 30).toFixed(2));
-        shiftEarnings = shiftBaseSalary;
-        appliedBasis = `₹${shiftBaseSalary}/shift (Fixed Monthly)`;
+        shiftEarnings = 0;
+        appliedBasis = `Fixed Monthly Salary`;
       }
 
       return {
@@ -151,7 +147,6 @@ export class WageHisabService {
         commission_type: commType,
         applied_basis: appliedBasis,
         shift_earnings: shiftEarnings,
-        shift_base_salary: shiftBaseSalary,
         shift_incentive: shiftIncentive,
       };
     });
@@ -194,6 +189,17 @@ export class WageHisabService {
     // 5. Karigar Fortnightly Wage Hisab: Net Pay = (Gross Output) - (Uchapat Advances) - (Deductions)
     const netPayable = Number((grossEarnings - totalUchapatAdvances - deductions).toFixed(2));
 
+    const startD = new Date(dto.startDate);
+    const endD = new Date(dto.endDate);
+    const periodDays = Math.max(1, Math.round((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    const uniqueShiftDates = Array.from(new Set(shifts.map((s) => s.shift_date)));
+    const attendedDays = uniqueShiftDates.length;
+    const absentDays = Math.max(0, periodDays - attendedDays);
+
+    const monthlySalary = Number(karigar.default_monthly_salary || 0);
+    const dailyBaseSalary = monthlySalary > 0 ? Number((monthlySalary / 30).toFixed(2)) : 0;
+    const suggestedAbsentDeduction = Number((absentDays * dailyBaseSalary).toFixed(2));
+
     const startDay = new Date(dto.startDate).getDate();
     const fortnightLabel = startDay <= 15 ? '1st Fortnight (1 to 15)' : '2nd Fortnight (16 to End of Month)';
 
@@ -214,6 +220,13 @@ export class WageHisabService {
       deductions,
       deduction_reason: dto.deduction_reason || '',
       net_payable: netPayable,
+      attendance: {
+        total_period_days: periodDays,
+        attended_days: attendedDays,
+        absent_days: absentDays,
+        daily_base_salary: dailyBaseSalary,
+        suggested_absent_deduction: suggestedAbsentDeduction,
+      },
       karigar: {
         id: karigar.id,
         name: karigar.name,
@@ -235,6 +248,11 @@ export class WageHisabService {
         totalMeters: Number(totalMeters.toFixed(2)),
         totalStitches,
         shiftsCount: shifts.length,
+        periodDays,
+        attendedDays,
+        absentDays,
+        dailyBaseSalary,
+        suggestedAbsentDeduction,
         baseSalary,
         incentiveCommission,
         grossEarnings,
