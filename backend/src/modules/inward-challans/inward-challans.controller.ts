@@ -63,6 +63,13 @@ export class InwardChallansController {
     });
   }
 
+  @Get('active-designs')
+  @RequirePermissions(Permission.CHALLAN_READ)
+  @ApiOperation({ summary: 'Get active inward lots and pending (uncompleted) designs for shift creation' })
+  async getActivePendingDesigns(@CurrentCompanyId() companyId: string) {
+    return this.inwardChallansService.getActivePendingLotsAndDesigns(companyId);
+  }
+
   @Get(':id')
   @RequirePermissions(Permission.CHALLAN_READ)
   @ApiOperation({ summary: 'Get Inward Challan details with related shifts and invoices' })
