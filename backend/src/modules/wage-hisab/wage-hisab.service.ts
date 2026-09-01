@@ -63,6 +63,8 @@ export class WageHisabService {
 
       let shiftEarnings = 0;
       let appliedBasis = '';
+      let shiftBaseSalary = 0;
+      let shiftIncentive = 0;
 
       if (karigar.wage_type === WageType.PIECE_RATE) {
         if (commRate !== undefined && commRate !== null && Number(commRate) > 0) {
@@ -83,6 +85,57 @@ export class WageHisabService {
           shiftEarnings = Number((shiftMeters * defaultRate).toFixed(2));
           appliedBasis = `₹${defaultRate}/meter`;
         }
+      } else if (karigar.wage_type === WageType.FIXED_PLUS_INCENTIVE) {
+        shiftBaseSalary = Number((Number(karigar.default_monthly_salary || 18000) / 30).toFixed(2));
+
+        const thresholdVal = Number(karigar.incentive_threshold_value || 100000);
+        const thresholdType = karigar.incentive_threshold_type || 'STITCHES';
+
+        // Check if design specifies commission rate, otherwise use karigar incentive rate
+        let rateNum = Number(karigar.incentive_rate || 0.25);
+        let rateType = karigar.incentive_rate_type || 'PER_1K_STITCHES';
+
+        if (commRate !== undefined && commRate !== null && Number(commRate) > 0) {
+          rateNum = Number(commRate);
+          rateType = commType || 'PER_1K_STITCHES';
+        }
+
+        let excess = 0;
+        let thresholdUnit = 'st';
+        if (thresholdType === 'STITCHES') {
+          thresholdUnit = 'st';
+          excess = Math.max(0, shiftStitches - thresholdVal);
+          if (rateType === 'PER_1K_STITCHES') {
+            shiftIncentive = Number(((excess / 1000) * rateNum).toFixed(2));
+          } else if (rateType === 'PER_PIECE') {
+            const pieces = Math.max(1, Math.floor(shiftMeters / 6));
+            shiftIncentive = Number((pieces * rateNum).toFixed(2));
+          } else {
+            shiftIncentive = Number((excess * rateNum).toFixed(2));
+          }
+        } else if (thresholdType === 'PIECES') {
+          thresholdUnit = 'pcs';
+          const pieces = Math.floor(shiftMeters / 6);
+          excess = Math.max(0, pieces - thresholdVal);
+          shiftIncentive = Number((excess * rateNum).toFixed(2));
+        } else {
+          thresholdUnit = 'm';
+          excess = Math.max(0, shiftMeters - thresholdVal);
+          shiftIncentive = Number((excess * rateNum).toFixed(2));
+        }
+
+        shiftEarnings = shiftIncentive;
+        const rateUnit = rateType === 'PER_1K_STITCHES' ? '1k st' : rateType === 'PER_PIECE' ? 'saree' : 'm';
+
+        if (shiftIncentive > 0) {
+          appliedBasis = `₹${rateNum}/${rateUnit} (> ${thresholdVal.toLocaleString()} ${thresholdUnit})`;
+        } else {
+          appliedBasis = `Under ${thresholdVal.toLocaleString()} ${thresholdUnit} threshold`;
+        }
+      } else if (karigar.wage_type === WageType.FIXED_MONTHLY) {
+        shiftBaseSalary = Number((Number(karigar.default_monthly_salary || 18000) / 30).toFixed(2));
+        shiftEarnings = shiftBaseSalary;
+        appliedBasis = `₹${shiftBaseSalary}/shift (Fixed Monthly)`;
       }
 
       return {
@@ -98,6 +151,8 @@ export class WageHisabService {
         commission_type: commType,
         applied_basis: appliedBasis,
         shift_earnings: shiftEarnings,
+        shift_base_salary: shiftBaseSalary,
+        shift_incentive: shiftIncentive,
       };
     });
 
@@ -117,23 +172,9 @@ export class WageHisabService {
       // FIXED_PLUS_INCENTIVE: Fortnight base salary + incentive commission above threshold
       const monthly = Number(karigar.default_monthly_salary || 18000);
       baseSalary = Number((monthly / 2).toFixed(2));
-
-      const thresholdVal = Number(karigar.incentive_threshold_value || 100000) / 2; // fortnight threshold
-      const incRate = Number(karigar.incentive_rate || 0.25);
-      const incType = karigar.incentive_rate_type || 'PER_1K_STITCHES';
-
-      if (incType === 'PER_1K_STITCHES') {
-        const excessStitches = Math.max(0, totalStitches - thresholdVal);
-        incentiveCommission = Number(((excessStitches / 1000) * incRate).toFixed(2));
-      } else if (incType === 'PER_PIECE') {
-        const estimatedPieces = Math.floor(totalMeters / 6); // standard 6m saree
-        const excessPieces = Math.max(0, estimatedPieces - thresholdVal);
-        incentiveCommission = Number((excessPieces * incRate).toFixed(2));
-      } else {
-        const excessMeters = Math.max(0, totalMeters - thresholdVal);
-        incentiveCommission = Number((excessMeters * incRate).toFixed(2));
-      }
-
+      incentiveCommission = Number(
+        shiftBreakdowns.reduce((acc, sb) => acc + (sb.shift_incentive || 0), 0).toFixed(2)
+      );
       grossEarnings = Number((baseSalary + incentiveCommission).toFixed(2));
     }
 
