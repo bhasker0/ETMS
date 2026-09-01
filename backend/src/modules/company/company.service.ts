@@ -43,6 +43,30 @@ export class CompanyService {
     return company;
   }
 
+  async getDashboardLayout(companyId: string) {
+    const company = await Company.findByPk(companyId);
+    const defaultOrder = ['fleet_status', 'production_output', 'sac_billing', 'inward_lots'];
+    const cardOrder = company?.settings?.dashboard_card_order || defaultOrder;
+    return { success: true, card_order: cardOrder };
+  }
+
+  async updateDashboardLayout(companyId: string, cardOrder: string[]) {
+    const company = await Company.findByPk(companyId);
+    if (!company) {
+      throw new NotFoundException(`Company with ID '${companyId}' not found`);
+    }
+    const defaultOrder = ['fleet_status', 'production_output', 'sac_billing', 'inward_lots'];
+    const safeOrder = Array.isArray(cardOrder) && cardOrder.length > 0 ? cardOrder : defaultOrder;
+    const currentSettings = company.settings || {};
+    company.settings = {
+      ...currentSettings,
+      dashboard_card_order: safeOrder,
+    };
+    company.changed('settings', true);
+    await company.save();
+    return { success: true, card_order: safeOrder };
+  }
+
   async getMembers(companyId: string) {
     return UserCompanyRole.findAll({
       where: { company_id: companyId, is_active: true },

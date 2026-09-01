@@ -46,6 +46,21 @@ export class CompanyController {
     return this.companyService.updateCompany(companyId, dto);
   }
 
+  @Get('current/dashboard-layout')
+  @ApiOperation({ summary: 'Get customized dashboard card order for current tenant company' })
+  async getDashboardLayout(@CurrentCompanyId() companyId: string) {
+    return this.companyService.getDashboardLayout(companyId);
+  }
+
+  @Put('current/dashboard-layout')
+  @ApiOperation({ summary: 'Update dashboard card order for current tenant company' })
+  async updateDashboardLayout(
+    @CurrentCompanyId() companyId: string,
+    @Body() body: { card_order: string[] },
+  ) {
+    return this.companyService.updateDashboardLayout(companyId, body?.card_order);
+  }
+
   @Get('members')
   @ApiOperation({ summary: 'Get all members/staff associated with company' })
   async getMembers(@CurrentCompanyId() companyId: string) {

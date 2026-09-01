@@ -79,6 +79,7 @@ export class Company extends Model<Company> {
       bank_name: '',
       branch: 'Surat',
     },
+    dashboard_card_order: ['fleet_status', 'production_output', 'sac_billing', 'inward_lots'],
   })
   @Column(DataType.JSONB)
   settings: Record<string, any>;
