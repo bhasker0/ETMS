@@ -25,4 +25,14 @@ export class GenerateWageHisabDto {
   @IsOptional()
   @IsString()
   deduction_reason?: string;
+
+  @ApiPropertyOptional({ example: 'CASH', default: 'CASH', description: 'Payment mode for salary settlement' })
+  @IsOptional()
+  @IsString()
+  payment_mode?: string;
+
+  @ApiPropertyOptional({ example: 'Settled by cash in office', description: 'Additional settlement notes' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

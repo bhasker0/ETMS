@@ -29,4 +29,9 @@ export enum Permission {
   // Company and settings
   COMPANY_SETTINGS_MANAGE = 'COMPANY_SETTINGS_MANAGE',
   AUDIT_LOG_VIEW = 'AUDIT_LOG_VIEW',
+
+  // Purchases & Expenses
+  PURCHASE_MANAGE = 'PURCHASE_MANAGE',
+  EXPENSE_MANAGE = 'EXPENSE_MANAGE',
+  REPORT_VIEW = 'REPORT_VIEW',
 }

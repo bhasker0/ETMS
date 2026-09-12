@@ -7,8 +7,11 @@ import {
   Body,
   Param,
   Query,
+  Res,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { PartiesService } from './parties.service';
 import { CreatePartyDto, UpdatePartyDto } from './dto/party.dto';
@@ -79,6 +82,28 @@ export class PartiesController {
     @Query('endDate') endDate?: string,
   ) {
     return this.partiesService.getPartyStatement(companyId, id, startDate, endDate);
+  }
+
+  @Get(':id/statement/pdf')
+  @RequirePermissions(Permission.INVOICE_READ, Permission.CHALLAN_READ)
+  @ApiOperation({ summary: 'Download Party Ledger Statement PDF Report' })
+  async downloadPartyStatementPdf(
+    @CurrentCompanyId() companyId: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const pdfBuffer = await this.partiesService.generatePartyStatementPdfBuffer(
+      companyId,
+      id,
+      startDate,
+      endDate,
+    );
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="ledger-${id}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    return res.status(HttpStatus.OK).send(pdfBuffer);
   }
 
   @Put(':id')

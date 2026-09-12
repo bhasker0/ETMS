@@ -7,8 +7,11 @@ import {
   Body,
   Param,
   Query,
+  Res,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { InwardChallansService } from './inward-challans.service';
 import { CreateInwardChallanDto, UpdateInwardChallanDto } from './dto/inward-challan.dto';
@@ -78,6 +81,21 @@ export class InwardChallansController {
     @Param('id') id: string,
   ) {
     return this.inwardChallansService.getChallanById(companyId, id);
+  }
+
+  @Get(':id/pdf')
+  @RequirePermissions(Permission.CHALLAN_READ)
+  @ApiOperation({ summary: 'Download generated PDF Inward Delivery Challan' })
+  async downloadChallanPdf(
+    @CurrentCompanyId() companyId: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const pdfBuffer = await this.inwardChallansService.generateChallanPdfBuffer(companyId, id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="challan-${id}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    return res.status(HttpStatus.OK).send(pdfBuffer);
   }
 
   @Put(':id')

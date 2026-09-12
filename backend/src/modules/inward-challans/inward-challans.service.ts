@@ -3,11 +3,16 @@ import { Op } from 'sequelize';
 import { InwardChallan } from '../../database/models/inward-challan.model';
 import { DailyShiftLog } from '../../database/models/daily-shift-log.model';
 import { OutwardInvoice } from '../../database/models/outward-invoice.model';
+import { Machine } from '../../database/models/machine.model';
+import { Company } from '../../database/models/company.model';
+import { Party } from '../../database/models/party.model';
 import { ChallanStatus } from '../../common/enums/challan-status.enum';
 import { CreateInwardChallanDto, UpdateInwardChallanDto } from './dto/inward-challan.dto';
+import { PdfService } from '../pdf/pdf.service';
 
 @Injectable()
 export class InwardChallansService {
+  constructor(private pdfService: PdfService) {}
   async createChallan(companyId: string, dto: CreateInwardChallanDto) {
     let challanNo = dto.challan_no;
     if (!challanNo) {
@@ -174,9 +179,44 @@ export class InwardChallansService {
       ];
     }
 
-    return InwardChallan.findAll({
+    const challans = await InwardChallan.findAll({
       where,
+      include: [
+        { model: OutwardInvoice, as: 'outwardInvoices', attributes: ['id', 'invoice_no', 'net_amount', 'invoice_date'] },
+        {
+          model: DailyShiftLog,
+          as: 'shiftLogs',
+          attributes: ['id', 'inward_challan_id', 'design_no', 'total_stitches', 'total_meters', 'machine_id'],
+          include: [{ model: Machine, as: 'machine', attributes: ['id', 'machine_no', 'head_count'] }],
+        },
+      ],
       order: [['challan_date', 'DESC'], ['created_at', 'DESC']],
+    });
+
+    return challans.map((c) => {
+      const plain = c.toJSON() as any;
+      const summary: Record<string, { total_stitches: number; total_meters: number; machine_heads: number; log_count: number }> = {};
+      if (plain.shiftLogs && Array.isArray(plain.shiftLogs)) {
+        for (const log of plain.shiftLogs) {
+          const design = log.design_no || plain.design_no || 'Standard';
+          if (!summary[design]) {
+            summary[design] = {
+              total_stitches: 0,
+              total_meters: 0,
+              machine_heads: log.machine?.head_count || 32,
+              log_count: 0,
+            };
+          }
+          summary[design].total_stitches += Number(log.total_stitches || 0);
+          summary[design].total_meters += Number(log.total_meters || 0);
+          summary[design].log_count += 1;
+          if (log.machine?.head_count) {
+            summary[design].machine_heads = log.machine.head_count;
+          }
+        }
+      }
+      plain.production_summary = summary;
+      return plain;
     });
   }
 
@@ -206,5 +246,52 @@ export class InwardChallansService {
     const challan = await this.getChallanById(companyId, id);
     await challan.destroy();
     return { message: `Inward Challan ${challan.challan_no} deleted successfully` };
+  }
+
+  async generateChallanPdfBuffer(companyId: string, id: string): Promise<Buffer> {
+    const challan = await this.getChallanById(companyId, id);
+    const company = await Company.findByPk(companyId);
+    if (!company) {
+      throw new NotFoundException(`Company '${companyId}' not found`);
+    }
+
+    // Resolve party mobile
+    const traderConditions: any[] = [{ name: { [Op.iLike]: challan.trader_name.trim() } }];
+    if (challan.trader_gstin) {
+      traderConditions.push({ gstin: challan.trader_gstin.trim() });
+    }
+    const party = await Party.findOne({
+      where: {
+        company_id: companyId,
+        [Op.or]: traderConditions,
+      },
+    });
+
+    return this.pdfService.generateChallanPdf({
+      company: {
+        name: company.name,
+        gstin: company.gstin,
+        address: company.address,
+        phone: company.phone,
+      },
+      challan: {
+        id: challan.id,
+        challan_no: challan.challan_no,
+        challan_date: challan.challan_date,
+        trader_name: challan.trader_name,
+        trader_gstin: challan.trader_gstin,
+        trader_mobile: party?.mobile,
+        lot_no: challan.lot_no,
+        than_count: Number(challan.than_count || 1),
+        inward_meters: Number(challan.inward_meters || 0),
+        fabric_quality: challan.fabric_quality,
+        design_no: challan.design_no,
+        stitch_count: Number(challan.stitch_count || 0),
+        jobwork_price_per_1k: Number(challan.jobwork_price_per_1k || 0),
+        status: challan.status,
+        notes: challan.notes,
+        items: challan.items,
+      },
+    });
   }
 }

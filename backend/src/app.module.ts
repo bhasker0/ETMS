@@ -18,6 +18,10 @@ import { TallyModule } from './modules/tally/tally.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { OpsSyncModule } from './modules/ops-sync/ops-sync.module';
 import { PartiesModule } from './modules/parties/parties.module';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
+import { PurchasesModule } from './modules/purchases/purchases.module';
+import { ExpensesModule } from './modules/expenses/expenses.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { TenantContextMiddleware } from './common/middleware/tenant-context.middleware';
@@ -45,6 +49,10 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     AuditModule,
     OpsSyncModule,
     PartiesModule,
+    WhatsappModule,
+    PurchasesModule,
+    ExpensesModule,
+    ReportsModule,
   ],
   providers: [
     {

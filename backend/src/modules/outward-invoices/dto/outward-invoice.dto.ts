@@ -6,8 +6,63 @@ import {
   IsOptional,
   Min,
   IsIn,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export class LotItemDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  inward_challan_id?: string;
+
+  @ApiPropertyOptional({ example: 'LOT-8310' })
+  @IsOptional()
+  @IsString()
+  lot_no?: string;
+
+  @ApiPropertyOptional({ example: 2000 })
+  @IsOptional()
+  @IsNumber()
+  meters?: number;
+
+  @ApiPropertyOptional({ example: 15 })
+  @IsOptional()
+  @IsNumber()
+  thans?: number;
+
+  @ApiPropertyOptional({ example: 'Georgette 60g' })
+  @IsOptional()
+  @IsString()
+  fabric_quality?: string;
+
+  @ApiPropertyOptional({ example: 'DSG-1050-A' })
+  @IsOptional()
+  @IsString()
+  design_no?: string;
+
+  @ApiPropertyOptional({ example: 0.60 })
+  @IsOptional()
+  @IsNumber()
+  rate?: number;
+
+  @ApiPropertyOptional({ example: 35640 })
+  @IsOptional()
+  @IsNumber()
+  taxable_amount?: number;
+
+  @ApiPropertyOptional({ example: 24000 })
+  @IsOptional()
+  @IsNumber()
+  stitch_count?: number;
+
+  @ApiPropertyOptional({ example: 66 })
+  @IsOptional()
+  @IsNumber()
+  machine_heads?: number;
+}
 
 export class CalculateInvoicePreviewDto {
   @ApiProperty({ example: 450000, description: 'Total stitch count' })
@@ -57,17 +112,12 @@ export class CreateOutwardInvoiceDto {
   @IsString()
   trader_gstin?: string;
 
-  @ApiPropertyOptional({ description: 'Consolidated multiple lots' })
+  @ApiPropertyOptional({ description: 'Consolidated multiple lots', type: [LotItemDto] })
   @IsOptional()
-  lot_items?: Array<{
-    inward_challan_id: string;
-    lot_no: string;
-    meters: number;
-    thans?: number;
-    fabric_quality?: string;
-    design_no?: string;
-    rate?: number;
-  }>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LotItemDto)
+  lot_items?: LotItemDto[];
 
   @ApiPropertyOptional({ example: 'INV-2026-0042', description: 'Auto-generated if empty' })
   @IsOptional()

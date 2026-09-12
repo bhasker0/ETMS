@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OpenWA WhatsApp Device Pairing</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js" 
+    integrity="sha512-WL6WGKMPBiM9PnHRYIn5YEtq0Z8XP4fkVb4qy7PP4vhmYQErJ/dySyXuFIMDf1eEYCXCrQrMJfkNwKc9gsjTjA==" 
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    body {
+      color: #1a2c37;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      padding: 2.5em;
+      background: #f0f2f5;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .header h1 {
+      font-size: 22px;
+      color: #075e54;
+      margin: 0;
+    }
+    .subtitle {
+      color: #54656f;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .eventwrap {
+      display: flex;
+      flex-direction: row;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .qr-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #fff;
+      padding: 16px;
+      border: 2px solid #25D366;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(37, 211, 102, 0.15);
+      min-width: 320px;
+      min-height: 320px;
+      justify-content: center;
+    }
+    .qr {
+      width: 300px;
+      height: 300px;
+      display: none;
+      object-fit: contain;
+    }
+    .qr-placeholder {
+      color: #8696a0;
+      font-size: 13px;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .log-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .log {
+      border: 1px solid #e9edef;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      height: 320px;
+      overflow-y: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #3b4a54;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: #d9fdd3;
+      color: #008069;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>WhatsApp Device Pairing</h1>
+      <span class="badge" id="connection-status">Connecting to Gateway...</span>
+    </div>
+    <div class="subtitle">
+      Open <strong>WhatsApp</strong> on your phone &rarr; Tap <strong>Settings (or ⋮ menu)</strong> &rarr; Tap <strong>Linked Devices</strong> &rarr; Tap <strong>Link a Device</strong> &rarr; Point your camera at the QR code below:
+    </div>
+
+    <div id="wrap"></div>
+  </div>
+
+  <script>
+    var Application = function () {
+      var sessions = [];
+
+      function consume(message) {
+        console.log('Received socket message:', message);
+
+        if (message.sessionId && !sessions.includes(message.sessionId)) {
+          $('#wrap').append(`
+            <div id="${message.sessionId}">
+              <div class="eventwrap">
+                <div class="qr-container">
+                  <div id="qr-loading-${message.sessionId}" class="qr-placeholder">
+                    <div style="margin-bottom:8px; font-weight:600; color:#075e54;">Waiting for WhatsApp QR...</div>
+                    <div style="font-size:11px;">Generating cryptographic handshake with WhatsApp Web</div>
+                  </div>
+                  <img id="qr-img-${message.sessionId}" class="qr" alt="Scan QR Code" />
+                </div>
+                <div class="log-container">
+                  <pre class="log" id="log-${message.sessionId}"></pre>
+                </div>
+              </div>
+            </div>
+          `);
+          sessions.push(message.sessionId);
+        }
+
+        if (message.namespace === "SOCKET" || message.namespace === "STARTUP") {
+          $('#connection-status').text('Gateway Online');
+        }
+
+        if (message.namespace === "qr") {
+          // Clean base64 data string (remove any trailing/leading whitespace or stray spaces after comma)
+          var rawData = typeof message.data === 'string' ? message.data.trim() : '';
+          var cleanData = rawData.replace(/^data:image\/png;base64,\s*/i, 'data:image/png;base64,');
+          
+          if (!cleanData.startsWith('data:image')) {
+            cleanData = 'data:image/png;base64,' + cleanData;
+          }
+
+          var img = document.getElementById('qr-img-' + message.sessionId);
+          var placeholder = document.getElementById('qr-loading-' + message.sessionId);
+          if (img) {
+            img.src = cleanData;
+            img.style.display = 'block';
+            if (placeholder) placeholder.style.display = 'none';
+          }
+          $('#connection-status').text('QR Code Ready - Scan Now');
+        }
+
+        if (message.namespace === "ready") {
+          $('#connection-status').text('✓ Connected & Authenticated').css({ background: '#008069', color: '#fff' });
+          alert('WhatsApp successfully paired! You can now send invoices directly.');
+        }
+
+        if (message.data) {
+          var logEl = document.getElementById('log-' + message.sessionId);
+          if (logEl) {
+            var displayData = typeof message.data === 'object' ? JSON.stringify(message.data, null, 2) : message.data;
+            if (displayData.length > 80 && displayData.includes('base64')) {
+              displayData = displayData.substring(0, 45) + '... [QR Image Base64 Data Received]';
+            }
+            logEl.innerHTML += '[' + new Date().toLocaleTimeString() + '] ' + message.namespace + ': ' + displayData + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+          }
+        }
+      }
+
+      var socketUrl = window.location.origin;
+      var socket = io(socketUrl, { path: '/socket.io' });
+
+      socket.on('connect', function () {
+        $('#connection-status').text('Gateway Connected');
+        console.log('Socket connected to:', socketUrl);
+      });
+
+      socket.on('message', consume);
+
+      socket.on('disconnect', function () {
+        $('#connection-status').text('Disconnected').css({ background: '#ffebee', color: '#c62828' });
+      });
+
+      return { socket: socket };
+    };
+
+    $(function () {
+      Application();
+    });
+  </script>
+</body>
+</html>

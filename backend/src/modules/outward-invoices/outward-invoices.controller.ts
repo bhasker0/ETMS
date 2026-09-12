@@ -60,18 +60,21 @@ export class OutwardInvoicesController {
   @ApiQuery({ name: 'startDate', required: false, example: '2026-08-01' })
   @ApiQuery({ name: 'endDate', required: false, example: '2026-08-15' })
   @ApiQuery({ name: 'tally_synced', required: false, type: Boolean })
+  @ApiQuery({ name: 'inward_challan_id', required: false })
   async getInvoices(
     @CurrentCompanyId() companyId: string,
     @Query('search') search?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('tally_synced') tallySynced?: string,
+    @Query('inward_challan_id') inwardChallanId?: string,
   ) {
     return this.outwardInvoicesService.getInvoices(companyId, {
       search,
       startDate,
       endDate,
       tally_synced: tallySynced !== undefined ? tallySynced === 'true' : undefined,
+      inward_challan_id: inwardChallanId,
     });
   }
 

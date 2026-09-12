@@ -1,20 +1,31 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { Op } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
+import { SEQUELIZE_TOKEN } from '../../common/constants';
 import { Karigar } from '../../database/models/karigar.model';
 import { DailyShiftLog } from '../../database/models/daily-shift-log.model';
 import { KarigarUchapat } from '../../database/models/karigar-uchapat.model';
 import { InwardChallan } from '../../database/models/inward-challan.model';
 import { Machine } from '../../database/models/machine.model';
 import { Company } from '../../database/models/company.model';
+import { Expense } from '../../database/models/expense.model';
 import { PdfService } from '../pdf/pdf.service';
 import { WageType } from '../../common/enums/wage-type.enum';
 import { GenerateWageHisabDto } from './dto/wage-hisab.dto';
 
 @Injectable()
 export class WageHisabService {
-  constructor(private pdfService: PdfService) {}
+  constructor(
+    private pdfService: PdfService,
+    @Inject(SEQUELIZE_TOKEN) private sequelize: Sequelize,
+  ) {}
 
   async calculateHisab(companyId: string, dto: GenerateWageHisabDto) {
+    const today = new Date().toISOString().split('T')[0];
+    if (dto.endDate && dto.endDate > today) {
+      throw new BadRequestException("Wage hisab calculation end date cannot be greater than today's date");
+    }
+
     const karigar = await Karigar.findOne({
       where: { id: dto.karigar_id, company_id: companyId },
     });
@@ -281,10 +292,13 @@ export class WageHisabService {
       company: {
         name: company?.name || 'Surat Embroidery Works',
         phone: company?.phone || '',
+        gstin: company?.gstin || '',
+        address: company?.address || '',
       },
       karigar: hisabData.karigar,
       hisabPeriod: hisabData.period,
       summary: hisabData.summary,
+      attendance: hisabData.attendance,
       shifts: hisabData.shifts,
       uchapats: hisabData.uchapats,
     });
@@ -294,20 +308,46 @@ export class WageHisabService {
     const hisab = await this.calculateHisab(companyId, dto);
     const hisabId = `HISAB-${dto.karigar_id.substring(0, 8)}-${dto.startDate}_${dto.endDate}`;
 
-    // Mark uchapat records as settled
-    const uchapatIds = hisab.uchapats.map((u) => u.id);
-    if (uchapatIds.length > 0) {
-      await KarigarUchapat.update(
-        { is_settled: true, settlement_hisab_id: hisId(hisabId) },
-        { where: { id: { [Op.in]: uchapatIds }, company_id: companyId } },
-      );
-    }
+    return await this.sequelize.transaction(async (t) => {
+      // Mark uchapat records as settled
+      const uchapatIds = hisab.uchapats.map((u) => u.id);
+      if (uchapatIds.length > 0) {
+        await KarigarUchapat.update(
+          { is_settled: true, settlement_hisab_id: hisId(hisabId) },
+          { where: { id: { [Op.in]: uchapatIds }, company_id: companyId }, transaction: t },
+        );
+      }
 
-    return {
-      message: 'Fortnightly Hisab settled successfully',
-      hisabId,
-      netPaid: hisab.summary.netPayable,
-    };
+      // Auto-record Salary Expense under INDIRECT -> STAFF_SALARY
+      let expenseRecord = null;
+      const netAmount = Number(hisab.summary.netPayable || 0);
+      if (netAmount > 0) {
+        expenseRecord = await Expense.create(
+          {
+            company_id: companyId,
+            category: 'INDIRECT',
+            expense_type: 'STAFF_SALARY',
+            payee_name: `${hisab.karigar.name} (Karigar Wage Settlement)`,
+            expense_date: dto.endDate || new Date().toISOString().split('T')[0],
+            amount: netAmount,
+            payment_mode: dto.payment_mode || 'CASH',
+            reference_no: hisabId,
+            is_gst_applicable: false,
+            gst_amount: 0,
+            description: `Fortnightly Wage Settlement (${dto.startDate} to ${dto.endDate}). Gross: ₹${hisab.summary.grossEarnings}, Advances Deducted: ₹${hisab.summary.totalUchapatAdvances}, Other Deductions: ₹${hisab.summary.deductions}${dto.notes ? ' - ' + dto.notes : ''}`,
+          } as any,
+          { transaction: t },
+        );
+      }
+
+      return {
+        message: 'Fortnightly Hisab settled and recorded in Expenses as Salary successfully',
+        hisabId,
+        netPaid: netAmount,
+        expenseId: expenseRecord?.id,
+        hisab,
+      };
+    });
   }
 }
 

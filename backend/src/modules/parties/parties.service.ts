@@ -3,10 +3,13 @@ import { Op } from 'sequelize';
 import { Party } from '../../database/models/party.model';
 import { InwardChallan } from '../../database/models/inward-challan.model';
 import { OutwardInvoice } from '../../database/models/outward-invoice.model';
+import { Company } from '../../database/models/company.model';
 import { CreatePartyDto, UpdatePartyDto } from './dto/party.dto';
+import { PdfService } from '../pdf/pdf.service';
 
 @Injectable()
 export class PartiesService {
+  constructor(private pdfService: PdfService) {}
   async createParty(companyId: string, dto: CreatePartyDto) {
     const existing = await Party.findOne({
       where: {
@@ -314,5 +317,50 @@ export class PartiesService {
 
     await party.destroy();
     return { message: `Party '${party.name}' deactivated successfully` };
+  }
+
+  async generatePartyStatementPdfBuffer(
+    companyId: string,
+    id: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<Buffer> {
+    const statement = await this.getPartyStatement(companyId, id, startDate, endDate);
+    const company = await Company.findByPk(companyId);
+    if (!company) {
+      throw new NotFoundException(`Company '${companyId}' not found`);
+    }
+
+    const settings = company.settings || {};
+    const bankDetails = {
+      bank_name: settings.bank_name || settings.bank_details?.bank_name || 'HDFC Bank Ltd',
+      account_no: settings.bank_account_no || settings.bank_details?.account_no || '50200088991122',
+      ifsc_code: settings.bank_ifsc || settings.bank_details?.ifsc_code || 'HDFC0000256',
+      branch: settings.bank_branch || settings.bank_details?.branch || 'Ring Road Textile Market, Surat',
+    };
+
+    const generatedAt = new Date().toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+
+    return this.pdfService.generateLedgerPdf({
+      company: {
+        name: company.name,
+        gstin: company.gstin,
+        address: company.address,
+        phone: company.phone,
+        bank_details: bankDetails,
+      },
+      party: statement.party,
+      period: {
+        startDate,
+        endDate,
+        generatedAt,
+      },
+      metrics: statement.metrics,
+      timeline: statement.timeline,
+    });
   }
 }
