@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import Redis from 'ioredis';
 import { User } from '../../database/models/user.model';
 import { Company } from '../../database/models/company.model';

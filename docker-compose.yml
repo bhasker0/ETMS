@@ -64,21 +64,22 @@ services:
       target: development
     container_name: etms-backend
     restart: unless-stopped
+    command: node node_modules/@nestjs/cli/bin/nest.js start --watch
     ports:
       - "${PORT:-4000}:4000"
     environment:
       NODE_ENV: development
       PORT: "4000"
-      DB_HOST: postgres
+      DB_HOST: etms-postgres
       DB_PORT: "5432"
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_DATABASE: ${DB_DATABASE:-surat_embroidery_erp}
-      REDIS_HOST: redis
+      REDIS_HOST: etms-redis
       REDIS_PORT: "6379"
       JWT_SECRET: ${JWT_SECRET:-surat_embroidery_super_secret_jwt_key_2026}
       JWT_EXPIRATION: 86400s
-      PDF_SERVICE_URL: http://pdf-service:3001
+      PDF_SERVICE_URL: http://etms-pdf-service:3001
       LOG_LEVEL: debug
       OPENWA_API_URL: http://openwa-gateway:2785
       OPENWA_API_KEY: owa_k1_8b891fbe26151557e088c36d0952bb42eea8429d41f62e9c4d7ad9317af7e5f5
