@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { Subject, Observable } from 'rxjs';
 import { Company } from '../../database/models/company.model';
 import { User } from '../../database/models/user.model';
 import { UserCompanyRole } from '../../database/models/user-company-role.model';
@@ -7,10 +8,33 @@ import { Role } from '../../common/enums/role.enum';
 import { Permission } from '../../common/enums/permission.enum';
 import * as bcrypt from 'bcrypt';
 
+export interface OpsSyncEvent {
+  data: {
+    type: 'PARAMETER_UPDATED' | 'FEATURE_FLAG_UPDATED' | 'SUBSCRIPTION_UPDATED' | 'COMPANY_UPDATED';
+    company_id: string;
+    key?: string;
+    value?: any;
+    enabled?: boolean;
+    parameters?: Record<string, any>;
+    feature_flags?: Record<string, boolean>;
+    timestamp: string;
+  };
+}
+
 @Injectable()
 export class OpsSyncService {
   private readonly logger = new Logger(OpsSyncService.name);
   private readonly syncSecret = process.env.JWT_SECRET || 'surat_embroidery_super_secret_jwt_key_2026';
+  private syncEvents$ = new Subject<OpsSyncEvent>();
+
+  getSyncEventsObservable(): Observable<OpsSyncEvent> {
+    return this.syncEvents$.asObservable();
+  }
+
+  emitSyncEvent(event: OpsSyncEvent['data']) {
+    this.logger.log(`Broadcasting realtime sync event: ${event.type} for company ${event.company_id}`);
+    this.syncEvents$.next({ data: event });
+  }
 
   verifySignature(payload: any, signature: string): boolean {
     if (!signature) return false;
@@ -149,6 +173,14 @@ export class OpsSyncService {
     };
     await company.save();
 
+    this.emitSyncEvent({
+      type: 'PARAMETER_UPDATED',
+      company_id: company.id,
+      parameters: incoming,
+      feature_flags: company.settings.feature_toggles,
+      timestamp: new Date().toISOString(),
+    });
+
     return { success: true, companyId: company.id, settings: company.settings };
   }
 
@@ -192,6 +224,15 @@ export class OpsSyncService {
     }
     await company.save();
 
+    this.emitSyncEvent({
+      type: 'FEATURE_FLAG_UPDATED',
+      company_id: company.id,
+      key: flagKey,
+      enabled: boolVal,
+      feature_flags: company.settings.feature_toggles,
+      timestamp: new Date().toISOString(),
+    });
+
     return { success: true, companyId: company.id, feature_toggles: company.settings.feature_toggles };
   }
 
@@ -207,6 +248,13 @@ export class OpsSyncService {
 
     company.status = status;
     await company.save();
+
+    this.emitSyncEvent({
+      type: 'SUBSCRIPTION_UPDATED',
+      company_id: company.id,
+      value: status,
+      timestamp: new Date().toISOString(),
+    });
 
     return { success: true, companyId: company.id, status: company.status };
   }

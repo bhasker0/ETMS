@@ -1,6 +1,7 @@
-import { Controller, Post, Body, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, Headers, UnauthorizedException, Sse } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { OpsSyncService } from './ops-sync.service';
+import { Observable } from 'rxjs';
+import { OpsSyncService, OpsSyncEvent } from './ops-sync.service';
 import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('OPS ↔ ETMS Synchronization')
@@ -16,6 +17,13 @@ export class OpsSyncController {
         throw new UnauthorizedException('Invalid OPS webhook signature');
       }
     }
+  }
+
+  @Public()
+  @Sse('events')
+  @ApiOperation({ summary: 'Realtime Server-Sent Events stream for OPS sync updates' })
+  syncEvents(): Observable<OpsSyncEvent> {
+    return this.opsSyncService.getSyncEventsObservable();
   }
 
   @Public()
@@ -58,3 +66,4 @@ export class OpsSyncController {
     return this.opsSyncService.syncSubscriptionStatus(payload);
   }
 }
+
