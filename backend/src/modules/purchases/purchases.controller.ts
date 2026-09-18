@@ -17,13 +17,16 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { CurrentCompanyId } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { FeatureToggleGuard } from '../../common/guards/feature-toggle.guard';
+import { RequireFeature } from '../../common/decorators/feature.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { COMPANY_ID_HEADER } from '../../common/constants';
 
 @ApiTags('Purchases (Raw Materials & Spares)')
 @ApiBearerAuth()
 @ApiHeader({ name: COMPANY_ID_HEADER, description: 'Active Tenant UUID', required: true })
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, FeatureToggleGuard, PermissionsGuard)
+@RequireFeature('purchases')
 @Controller('api/v1/purchases')
 export class PurchasesController {
   constructor(private purchasesService: PurchasesService) {}

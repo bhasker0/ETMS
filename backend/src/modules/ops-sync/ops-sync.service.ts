@@ -131,6 +131,42 @@ export class OpsSyncService {
     return { success: true, companyId: company.id, settings: company.settings };
   }
 
+  // SCRUM-331: Sync Feature Flags from OPS
+  async syncFeatureFlags(payload: any) {
+    const { company_id, flagKey, enabled, feature_flags } = payload;
+    this.logger.log(`Syncing feature flags for company ${company_id} from OPS`);
+
+    const company = await Company.findByPk(company_id);
+    if (!company) {
+      return { success: false, message: 'Company not found' };
+    }
+
+    const currentSettings = company.settings || {};
+    const currentToggles = currentSettings.feature_toggles || {};
+
+    if (feature_flags) {
+      company.settings = {
+        ...currentSettings,
+        feature_toggles: { ...currentToggles, ...feature_flags },
+      };
+    } else if (flagKey) {
+      const cleanKey = flagKey.replace(/^feature_/, '').replace(/_enabled$/, '');
+      company.settings = {
+        ...currentSettings,
+        feature_toggles: {
+          ...currentToggles,
+          [flagKey]: enabled,
+          [`${flagKey}_enabled`]: enabled,
+          [cleanKey]: enabled,
+          [`${cleanKey}_enabled`]: enabled,
+        },
+      };
+    }
+    await company.save();
+
+    return { success: true, companyId: company.id, feature_toggles: company.settings.feature_toggles };
+  }
+
   // SCRUM-57: Subscription Status & Access Suspension
   async syncSubscriptionStatus(payload: any) {
     const { company_id, status } = payload;

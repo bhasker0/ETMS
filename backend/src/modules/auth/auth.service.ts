@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcrypt';
 import Redis from 'ioredis';
 import { User } from '../../database/models/user.model';
 import { Company } from '../../database/models/company.model';
@@ -17,6 +17,50 @@ import { Role } from '../../common/enums/role.enum';
 import { Permission } from '../../common/enums/permission.enum';
 import { LoginDto, RegisterDto, SwitchCompanyDto } from './dto/auth.dto';
 import { REDIS_TOKEN_BLACKLIST_PREFIX } from '../../common/constants';
+
+function resolveCompanyFeatureFlags(company?: Company | null): Record<string, boolean> {
+  const defaultFlags: Record<string, boolean> = {
+    feature_broadcasting_alerts: true,
+    feature_kyc_onboarding: true,
+    feature_command_palette: true,
+    feature_audit_log_viewer: true,
+    feature_speech_data_entry: true,
+    feature_shift_production: true,
+    feature_machines: true,
+    feature_karigars: true,
+    feature_inward_challans: true,
+    feature_parties: true,
+    feature_outward_invoices: true,
+    feature_purchases: true,
+    feature_expenses: true,
+    feature_reports: true,
+    feature_uchapat_advance: true,
+    feature_wage_hisab: true,
+    feature_tally_export: true,
+    feature_munim_portal: true,
+    feature_whatsapp_dispatch: true,
+  };
+
+  if (!company) return defaultFlags;
+
+  const settings = company.settings || {};
+  const toggles = settings.feature_toggles || {};
+
+  const resolved = { ...defaultFlags };
+
+  Object.keys(toggles).forEach((key) => {
+    const val = toggles[key];
+    const boolVal = val !== false && val !== 'false' && val !== 0 && val !== '0';
+    resolved[key] = boolVal;
+    if (key.startsWith('feature_')) {
+      resolved[key.replace(/^feature_/, '')] = boolVal;
+    } else {
+      resolved[`feature_${key}`] = boolVal;
+    }
+  });
+
+  return resolved;
+}
 
 @Injectable()
 export class AuthService {
@@ -99,6 +143,7 @@ export class AuthService {
           }
         : null,
       accessToken: token,
+      featureFlags: resolveCompanyFeatureFlags(company),
     };
   }
 
@@ -145,6 +190,11 @@ export class AuthService {
       }
     }
 
+    const activeCompanyObj =
+      user.userCompanyRoles?.find((r) => r.company_id === activeCompanyId)?.company ||
+      user.munimClients?.find((m) => m.company_id === activeCompanyId)?.company ||
+      (activeCompanyId ? await Company.findByPk(activeCompanyId) : null);
+
     const payload = {
       sub: user.id,
       mobile: user.mobile,
@@ -163,6 +213,7 @@ export class AuthService {
         email: user.email,
       },
       activeCompanyId,
+      featureFlags: resolveCompanyFeatureFlags(activeCompanyObj),
       companies: (user.userCompanyRoles || []).map((ucr) => ({
         id: ucr.company_id,
         name: ucr.company?.name,
@@ -218,6 +269,8 @@ export class AuthService {
 
     return {
       accessToken: token,
+      activeCompanyId: companyId,
+      featureFlags: resolveCompanyFeatureFlags(company),
       activeCompany: {
         id: company?.id,
         name: company?.name,

@@ -19,6 +19,8 @@ import { CurrentCompanyId } from '../../common/decorators/current-company.decora
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { FeatureToggleGuard } from '../../common/guards/feature-toggle.guard';
+import { RequireFeature } from '../../common/decorators/feature.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { Permission } from '../../common/enums/permission.enum';
 import { COMPANY_ID_HEADER } from '../../common/constants';
@@ -26,7 +28,8 @@ import { COMPANY_ID_HEADER } from '../../common/constants';
 @ApiTags('Karigar Uchapat (Cash/UPI Advances)')
 @ApiBearerAuth()
 @ApiHeader({ name: COMPANY_ID_HEADER, description: 'Active Tenant UUID', required: true })
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, FeatureToggleGuard, PermissionsGuard)
+@RequireFeature('uchapat_advance')
 @Controller('api/v1/uchapat')
 export class UchapatController {
   constructor(private uchapatService: UchapatService) {}

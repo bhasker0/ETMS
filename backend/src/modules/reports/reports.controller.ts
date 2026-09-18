@@ -6,13 +6,16 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { CurrentCompanyId } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { FeatureToggleGuard } from '../../common/guards/feature-toggle.guard';
+import { RequireFeature } from '../../common/decorators/feature.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { COMPANY_ID_HEADER } from '../../common/constants';
 
 @ApiTags('Reports (Production, Sales, Expenses, P&L)')
 @ApiBearerAuth()
 @ApiHeader({ name: COMPANY_ID_HEADER, description: 'Active Tenant UUID', required: true })
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, FeatureToggleGuard, PermissionsGuard)
+@RequireFeature('reports')
 @Controller('api/v1/reports')
 export class ReportsController {
   constructor(private reportsService: ReportsService) {}

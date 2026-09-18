@@ -15,14 +15,17 @@ import {
 } from './dto/send-whatsapp.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
+import { FeatureToggleGuard } from '../../common/guards/feature-toggle.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { RequireFeature } from '../../common/decorators/feature.decorator';
 import { CurrentCompanyId } from '../../common/decorators/current-company.decorator';
 import { COMPANY_ID_HEADER } from '../../common/constants';
 
 @ApiTags('WhatsApp Document Sharing (OpenWA)')
 @ApiBearerAuth()
 @ApiHeader({ name: COMPANY_ID_HEADER, description: 'Active Tenant UUID', required: true })
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, FeatureToggleGuard, PermissionsGuard)
+@RequireFeature('whatsapp_dispatch')
 @Controller('api/v1/whatsapp')
 export class WhatsappController {
   constructor(private whatsappService: WhatsappService) {}

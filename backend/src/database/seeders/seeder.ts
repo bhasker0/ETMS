@@ -1,5 +1,5 @@
 import { Sequelize } from 'sequelize-typescript';
-import * as bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcrypt';
 import { User } from '../models/user.model';
 import { Company } from '../models/company.model';
 import { UserCompanyRole } from '../models/user-company-role.model';

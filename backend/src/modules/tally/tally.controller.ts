@@ -16,13 +16,16 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { CurrentCompanyId } from '../../common/decorators/current-company.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { FeatureToggleGuard } from '../../common/guards/feature-toggle.guard';
+import { RequireFeature } from '../../common/decorators/feature.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 import { COMPANY_ID_HEADER } from '../../common/constants';
 
 @ApiTags('Tally Prime XML Integration')
 @ApiBearerAuth()
 @ApiHeader({ name: COMPANY_ID_HEADER, description: 'Active Tenant UUID', required: true })
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, FeatureToggleGuard, PermissionsGuard)
+@RequireFeature('tally_export')
 @Controller('api/v1/tally')
 export class TallyController {
   constructor(private tallyService: TallyService) {}

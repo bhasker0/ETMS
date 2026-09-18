@@ -20,6 +20,8 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { CurrentCompanyId } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { FeatureToggleGuard } from '../../common/guards/feature-toggle.guard';
+import { RequireFeature } from '../../common/decorators/feature.decorator';
 import { Role } from '../../common/enums/role.enum';
 import { Permission } from '../../common/enums/permission.enum';
 import { COMPANY_ID_HEADER } from '../../common/constants';
@@ -27,7 +29,8 @@ import { COMPANY_ID_HEADER } from '../../common/constants';
 @ApiTags('Outward Invoices & SAC 9988 Stitch Billing')
 @ApiBearerAuth()
 @ApiHeader({ name: COMPANY_ID_HEADER, description: 'Active Tenant UUID', required: true })
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, FeatureToggleGuard, PermissionsGuard)
+@RequireFeature('outward_invoices')
 @Controller('api/v1/outward-invoices')
 export class OutwardInvoicesController {
   constructor(private outwardInvoicesService: OutwardInvoicesService) {}

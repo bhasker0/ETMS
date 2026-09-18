@@ -33,7 +33,7 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     const userRole: Role = request.companyRole || user?.role;
-    const userPermissions: Permission[] = request.companyPermissions || [];
+    const userPermissions: Permission[] = request.companyPermissions || user?.permissions || [];
 
     if (!user) {
       return true;
@@ -53,7 +53,9 @@ export class PermissionsGuard implements CanActivate {
     if (requiredRoles && requiredRoles.length > 0) {
       const hasRole = requiredRoles.includes(userRole);
       if (!hasRole) {
-        throw new ForbiddenException(`Access denied. Required role: ${requiredRoles.join(', ')}`);
+        throw new ForbiddenException(
+          `You do not have authority for this functionality. Required role: ${requiredRoles.join(', ')}`,
+        );
       }
     }
 
@@ -65,7 +67,7 @@ export class PermissionsGuard implements CanActivate {
 
       if (!hasPermission) {
         throw new ForbiddenException(
-          `Access denied. Missing required permission: ${requiredPermissions.join(', ')}`,
+          `You do not have authority for this functionality. Missing required permission: ${requiredPermissions.join(', ')}`,
         );
       }
     }

@@ -43,6 +43,14 @@ export class OpsSyncController {
   }
 
   @Public()
+  @Post('feature-flags')
+  @ApiOperation({ summary: 'Sync feature flag toggles from OPS to ETMS' })
+  async syncFeatureFlags(@Body() payload: any, @Headers('x-ops-signature') signature: string) {
+    this.validateHeaderSignature(payload, signature);
+    return this.opsSyncService.syncFeatureFlags(payload);
+  }
+
+  @Public()
   @Post('subscription-status')
   @ApiOperation({ summary: 'Enforce SaaS tenant subscription lifecycle status' })
   async syncSubscriptionStatus(@Body() payload: any, @Headers('x-ops-signature') signature: string) {

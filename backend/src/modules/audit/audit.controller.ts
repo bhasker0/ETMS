@@ -5,6 +5,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { CurrentCompanyId } from '../../common/decorators/current-company.decorator';
+import { FeatureToggleGuard } from '../../common/guards/feature-toggle.guard';
+import { RequireFeature } from '../../common/decorators/feature.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { Permission } from '../../common/enums/permission.enum';
 import { COMPANY_ID_HEADER } from '../../common/constants';
@@ -12,7 +14,8 @@ import { COMPANY_ID_HEADER } from '../../common/constants';
 @ApiTags('Audit Trail & Financial Mutations')
 @ApiBearerAuth()
 @ApiHeader({ name: COMPANY_ID_HEADER, description: 'Active Tenant UUID', required: true })
-@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, FeatureToggleGuard, PermissionsGuard)
+@RequireFeature('audit_log_viewer')
 @Controller('api/v1/audit-logs')
 export class AuditController {
   constructor(private auditService: AuditService) {}

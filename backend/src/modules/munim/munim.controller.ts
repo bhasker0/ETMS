@@ -16,12 +16,15 @@ import {
   RespondMunimRequestDto,
 } from './dto/munim.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { FeatureToggleGuard } from '../../common/guards/feature-toggle.guard';
+import { RequireFeature } from '../../common/decorators/feature.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CurrentCompanyId } from '../../common/decorators/current-company.decorator';
 
 @ApiTags('Munim (Accountant) Collaboration')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureToggleGuard)
+@RequireFeature('munim_portal')
 @Controller('api/v1/munim')
 export class MunimController {
   constructor(private munimService: MunimService) {}
