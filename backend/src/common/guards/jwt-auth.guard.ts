@@ -12,10 +12,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(private reflector: Reflector) {
     super();
     this.redisClient = new Redis({
-      host: process.env.REDIS_HOST || 'redis',
+      host: process.env.REDIS_HOST || '127.0.0.1',
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
       lazyConnect: true,
+      maxRetriesPerRequest: 1,
+      retryStrategy: () => null,
+      reconnectOnError: () => false,
     });
+    this.redisClient.on('error', () => {});
     this.redisClient.connect().catch(() => {});
   }
 

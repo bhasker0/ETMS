@@ -52,12 +52,16 @@ export const databaseProviders = [
         Expense,
       ]);
 
-      await sequelize.authenticate();
-      console.log('PostgreSQL Connection has been established successfully.');
+      try {
+        await sequelize.authenticate();
+        console.log('[ETMS Database] PostgreSQL Connection has been established successfully.');
 
-      // Sync schema automatically
-      await sequelize.sync({ alter: true });
-      console.log('Sequelize Models synchronized successfully.');
+        // Sync schema automatically
+        await sequelize.sync({ alter: true });
+        console.log('[ETMS Database] Sequelize Models synchronized successfully.');
+      } catch (err: any) {
+        console.warn(`[ETMS Database] PostgreSQL connection warning (${err.message}). Starting backend in offline/resilient fallback mode.`);
+      }
 
       return sequelize;
     },

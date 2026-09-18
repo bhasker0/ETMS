@@ -63,6 +63,34 @@ export class Machine extends Model<Machine> {
   @Column(DataType.BOOLEAN)
   is_active: boolean;
 
+  @Default(DataType.UUIDV4)
+  @Index('idx_machine_api_key')
+  @Column({
+    type: DataType.STRING(100),
+    allowNull: false,
+  })
+  api_key: string;
+
+  @Default('stopped')
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: false,
+  })
+  status: string;
+
+  @Default(0)
+  @Column({
+    type: DataType.BIGINT,
+    allowNull: false,
+  })
+  stitch_count: number;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+  })
+  last_telemetry_at: Date;
+
   @BelongsTo(() => Company, 'company_id')
   company: Company;
 
