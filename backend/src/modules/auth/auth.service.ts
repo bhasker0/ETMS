@@ -48,15 +48,26 @@ function resolveCompanyFeatureFlags(company?: Company | null): Record<string, bo
 
   const resolved = { ...defaultFlags };
 
+  // Parse direct settings
+  Object.keys(settings).forEach((key) => {
+    if (key.startsWith('feature_') || key.endsWith('_enabled')) {
+      const val = settings[key];
+      const boolVal = val !== false && val !== 'false' && val !== 0 && val !== '0';
+      const cleanKey = key.replace(/^feature_/, '').replace(/_enabled$/, '');
+      resolved[key] = boolVal;
+      resolved[cleanKey] = boolVal;
+      resolved[`feature_${cleanKey}`] = boolVal;
+    }
+  });
+
+  // Parse nested feature toggles (takes precedence)
   Object.keys(toggles).forEach((key) => {
     const val = toggles[key];
     const boolVal = val !== false && val !== 'false' && val !== 0 && val !== '0';
+    const cleanKey = key.replace(/^feature_/, '').replace(/_enabled$/, '');
     resolved[key] = boolVal;
-    if (key.startsWith('feature_')) {
-      resolved[key.replace(/^feature_/, '')] = boolVal;
-    } else {
-      resolved[`feature_${key}`] = boolVal;
-    }
+    resolved[cleanKey] = boolVal;
+    resolved[`feature_${cleanKey}`] = boolVal;
   });
 
   return resolved;

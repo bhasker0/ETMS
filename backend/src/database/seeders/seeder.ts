@@ -79,6 +79,7 @@ async function runSeed() {
   const [company1] = await Company.findOrCreate({
     where: { gstin: '24AAAAA1111A1Z5' },
     defaults: {
+      id: '11111111-1111-1111-1111-111111111111',
       name: 'Radhe Krishna Embroidery Works',
       gstin: '24AAAAA1111A1Z5',
       address: 'Plot 101-102, Khatodara GIDC, Surat, Gujarat - 395002',
@@ -368,6 +369,7 @@ async function runSeed() {
   const [company2] = await Company.findOrCreate({
     where: { gstin: '24BBBBB2222B1Z6' },
     defaults: {
+      id: '24242424-2424-2424-2424-242424242424',
       name: 'Shree Ram Textiles & Embroidery',
       gstin: '24BBBBB2222B1Z6',
       address: 'Ring Road Textile Market, Surat, Gujarat - 395003',
